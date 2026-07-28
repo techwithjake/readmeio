@@ -28,7 +28,7 @@ paths:
                     example: true
                   relocation_open:
                     type: boolean
-                    example: true
+                    example: false
   /skills:
     get:
       summary: List current technical skills
