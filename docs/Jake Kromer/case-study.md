@@ -15,7 +15,7 @@ A background sync service on a subset of our field-deployed Raspberry Pi units s
 
 With 180+ devices in the field, pulling logs one SSH session at a time wasn't going to scale. We already had a fleet audit script for this. It reads device inventory, connects to each unit over a secure mesh network, and pulls back systemd service status. The first move was widening its use. We had it also grab the failing service's recent journal output, across every device reporting the bad status.
 
-That surfaced the actual failure, verbatim from one affected device's log:
+That surfaced the actual failure. Here's the relevant slice of the journal log from one affected device:
 
 ```
 s3_sync_daemon.sh: line 436: _site: unbound variable
@@ -31,7 +31,7 @@ s3_sync_daemon.sh: line 436: _site: unbound variable
 
 ## Root Cause
 
-The script ran with `set -u`, which makes bash treat any reference to an unset variable as a fatal error. Two variables — `_site` and `_facility` — were only ever assigned inside a conditional block that read a per-device config file:
+The script ran with `set -u`, which makes bash treat any reference to an unset variable as a fatal error. Two variables — `_site` and `_facility` — only ever got assigned inside a conditional block that read a per-device config file. Here's that block:
 
 ```bash
 if [[ -f "$_dev_cfg" ]]; then
@@ -40,7 +40,7 @@ if [[ -f "$_dev_cfg" ]]; then
 fi
 ```
 
-On devices where that config file happened to be missing, `_site` and `_facility` were never assigned at all. The very next validation check referenced `_site` to decide whether to log a warning. Under `set -u`, referencing an unset variable there killed the daemon immediately. It died before it could even log the warning it was trying to check for. So the failure mode was self-hiding. The exact code path meant to handle "config file missing gracefully" was the thing crashing the service.
+On devices where that config file happened to be missing, `_site` and `_facility` were never assigned at all. The very next validation check referenced `_site` to decide whether to log a warning. Under `set -u`, referencing an unset variable there killed the daemon immediately. It died before it could even log the warning it was trying to check for. That made the failure self-hiding: the exact code path meant to handle "config file missing gracefully" crashed the service instead.
 
 It wasn't fleet-wide because it wasn't about the devices — it was about which devices happened to be missing that one local config file, for unrelated provisioning reasons.
 
@@ -52,7 +52,7 @@ It wasn't fleet-wide because it wasn't about the devices — it was about which 
 
 ## Resolution
 
-The fix was small: initialize both variables to empty strings before the conditional, so `set -u` has nothing to complain about even when the config file is absent, and add `|| true` to the `grep` calls so a non-match doesn't separately trip `set -e`.
+The fix was small: initialize both variables to empty strings before the conditional, so `set -u` has nothing to complain about even when the config file is absent, and add `|| true` to the `grep` calls so a non-match doesn't separately trip `set -e`. Here's the patched block:
 
 ```bash
 local _site="" _facility=""
