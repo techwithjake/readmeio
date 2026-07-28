@@ -31,7 +31,7 @@ s3_sync_daemon.sh: line 436: _site: unbound variable
 
 ## Root Cause
 
-The script ran with `set -u`, which makes bash treat any reference to an unset variable as a fatal error. Two variables — `_site` and `_facility` — only ever got assigned inside a conditional block that read a per-device config file. Here's that block:
+The script ran with `set -u`, which makes bash treat any reference to an unset variable as a fatal error. A conditional block that read a per-device config file was the only place that assigned two variables, `_site` and `_facility`. Here's that block:
 
 ```bash
 if [[ -f "$_dev_cfg" ]]; then
@@ -40,7 +40,7 @@ if [[ -f "$_dev_cfg" ]]; then
 fi
 ```
 
-On devices where that config file happened to be missing, `_site` and `_facility` were never assigned at all. The very next validation check referenced `_site` to decide whether to log a warning. Under `set -u`, referencing an unset variable there killed the daemon immediately. It died before it could even log the warning it was trying to check for. That made the failure self-hiding: the exact code path meant to handle "config file missing gracefully" crashed the service instead.
+On devices where that config file happened to be missing, the script never assigned `_site` or `_facility` at all. The very next validation check referenced `_site` to decide whether to log a warning. Under `set -u`, referencing an unset variable there killed the daemon immediately. It died before it could even log the warning it was trying to check for. That made the failure self-hiding: the exact code path meant to handle "config file missing gracefully" crashed the service instead.
 
 It wasn't fleet-wide because it wasn't about the devices — it was about which devices happened to be missing that one local config file, for unrelated provisioning reasons.
 
