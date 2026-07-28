@@ -15,14 +15,7 @@ A subset of our field-deployed Raspberry Pi units were dropping off Tailscale in
 
 Pulling raw connectivity logs per-device wasn't going to scale past a handful of units, so I pulled logs into a structured table and ran SQL correlation across timestamps, device firmware versions, and network handoff events:
 
-\`\`\`sql
-SELECT device_id, firmware_version, COUNT(\*) AS drop_events
-FROM connectivity_log
-WHERE event_type = 'tailscale_disconnect'
-AND ts > NOW() - INTERVAL '7 days'
-GROUP BY device_id, firmware_version
-ORDER BY drop_events DESC;
-\`\`\`
+\`\`\`sql<br />SELECT device_id, firmware_version, COUNT(\*) AS drop_events<br />FROM connectivity_log<br />WHERE event_type = 'tailscale_disconnect'<br />AND ts > NOW() - INTERVAL '7 days'<br />GROUP BY device_id, firmware_version<br />ORDER BY drop_events DESC;<br />\`\`\`
 
 <Callout icon="📘" theme="info">
   ### **Note:** The pattern that mattered wasn't the raw drop count — it was that drops clustered on one firmware version, not one location. That reframed the whole investigation.
