@@ -47,7 +47,7 @@ It wasn't fleet-wide because it wasn't about the devices — it was about which 
 <Callout icon="🚧" theme="warn">
   ### Warning
 
-  This failure mode was self-hiding. The exact code path meant to log a warning about a missing config file was the thing crashing the service. Any `set -u`/`set -e` script is vulnerable to this same trap, if it references a variable assigned only inside a conditional file check.
+  This failure mode hid itself: the code path meant to log a warning about a missing config file crashed the service instead. Any `set -u`/`set -e` script risks this same trap if it references a variable that only a conditional file check assigns.
 </Callout>
 
 ## Resolution
