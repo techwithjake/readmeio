@@ -17,7 +17,7 @@ With 180+ devices in the field, pulling logs one SSH session at a time wasn't go
 
 That surfaced the actual failure. Here's the relevant slice of the journal log from one affected device:
 
-```
+```text
 s3_sync_daemon.sh: line 436: _site: unbound variable
 [error] ERR at s3_sync_daemon.sh:721: cmd='_ext=$(_infer_app_config_ext audio)' exit=1
 [info] Daemon exiting
@@ -52,7 +52,7 @@ It wasn't fleet-wide because it wasn't about the devices — it was about which 
 
 ## Resolution
 
-The fix was small: initialize both variables to empty strings before the conditional, so `set -u` has nothing to complain about even when the config file is absent, and add `|| true` to the `grep` calls so a non-match doesn't separately trip `set -e`. Here's the patched block:
+The fix was small. Initialize both variables to empty strings before the conditional, so `set -u` has nothing to complain about even when the config file is absent. Add `|| true` to the `grep` calls too, so a non-match doesn't separately trip `set -e`. Here's the patched block:
 
 ```bash
 local _site="" _facility=""
