@@ -5,30 +5,73 @@ hidden: false
 metadata:
   robots: index
 ---
-# Tracking Down Intermittent Connectivity Drops Across a 180-Device Fleet
+# Tracking Down a Silent Service Failure Across a Raspberry Pi Fleet
 
 ## The Problem
 
-A subset of our field-deployed Raspberry Pi units were dropping off Tailscale intermittently — no consistent pattern, no obvious correlation to location, hardware batch, or time of day. Customers noticed before we did, which is the outcome you always want to avoid.
+A background sync service on a subset of our field-deployed Raspberry Pi units started crash-looping — restarting, failing within a couple seconds, restarting again, over and over. Systemd's restart counter climbed steadily on affected devices while the rest of the fleet ran fine. There was no obvious pattern by location, hardware batch, or deployment date. It looked random.
 
 ## Investigation
 
-Pulling raw connectivity logs per-device wasn't going to scale past a handful of units, so I pulled logs into a structured table and ran SQL correlation across timestamps, device firmware versions, and network handoff events:
+With 180+ devices in the field, pulling logs one SSH session at a time wasn't going to scale. We already had a fleet audit script for this. It reads device inventory, connects to each unit over a secure mesh network, and pulls back systemd service status. The first move was widening its use. We had it also grab the failing service's recent journal output, across every device reporting the bad status.
 
-\`\`\`sql<br />SELECT device_id, firmware_version, COUNT(\*) AS drop_events<br />FROM connectivity_log<br />WHERE event_type = 'tailscale_disconnect'<br />AND ts > NOW() - INTERVAL '7 days'<br />GROUP BY device_id, firmware_version<br />ORDER BY drop_events DESC;<br />\`\`\`
+That surfaced the actual failure, verbatim from one affected device's log:
+
+```
+s3_sync_daemon.sh: line 436: _site: unbound variable
+[error] ERR at s3_sync_daemon.sh:721: cmd='_ext=$(_infer_app_config_ext audio)' exit=1
+[info] Daemon exiting
+```
 
 <Callout icon="📘" theme="info">
-  ### **Note:** The pattern that mattered wasn't the raw drop count — it was that drops clustered on one firmware version, not one location. That reframed the whole investigation.
+  ### Note
+
+  The pattern that mattered wasn't which devices were failing. It was that every failing device hit the exact same line in the exact same script. That reframed the investigation. It went from "what's different about these devices" to "what's different about this one code path."
 </Callout>
 
 ## Root Cause
 
-Isolating by firmware version pointed to a specific update that changed how the device handled DNS re-resolution after a network handoff — cellular to Starlink, for instance. Devices on that version were failing to re-resolve and silently sitting disconnected instead of retrying.
+The script ran with `set -u`, which makes bash treat any reference to an unset variable as a fatal error. Two variables — `_site` and `_facility` — were only ever assigned inside a conditional block that read a per-device config file:
+
+```bash
+if [[ -f "$_dev_cfg" ]]; then
+    _site=$(grep -m1 '^SITE_NAME=' "$_dev_cfg" | cut -d= -f2-)
+    _facility=$(grep -m1 '^FACILITY_NAME=' "$_dev_cfg" | cut -d= -f2-)
+fi
+```
+
+On devices where that config file happened to be missing, `_site` and `_facility` were never assigned at all. The very next validation check referenced `_site` to decide whether to log a warning. Under `set -u`, referencing an unset variable there killed the daemon immediately. It died before it could even log the warning it was trying to check for. So the failure mode was self-hiding. The exact code path meant to handle "config file missing gracefully" was the thing crashing the service.
+
+It wasn't fleet-wide because it wasn't about the devices — it was about which devices happened to be missing that one local config file, for unrelated provisioning reasons.
+
+<Callout icon="🚧" theme="warn">
+  ### Warning
+
+  This failure mode was self-hiding. The exact code path meant to log a warning about a missing config file was the thing crashing the service. Any `set -u`/`set -e` script is vulnerable to this same trap, if it references a variable assigned only inside a conditional file check.
+</Callout>
 
 ## Resolution
 
-Rolled back the affected devices to the prior firmware via our in-house update mechanism, pushed a fix for the re-resolution bug, and added the drop-event query above as a standing check in our monitoring so this pattern gets caught in hours next time, not days.
+The fix was small: initialize both variables to empty strings before the conditional, so `set -u` has nothing to complain about even when the config file is absent, and add `|| true` to the `grep` calls so a non-match doesn't separately trip `set -e`.
+
+```bash
+local _site="" _facility=""
+if [[ -f "$_dev_cfg" ]]; then
+    _site=$(grep -m1 '^SITE_NAME='    "$_dev_cfg" | cut -d= -f2- || true)
+    _facility=$(grep -m1 '^FACILITY_NAME=' "$_dev_cfg" | cut -d= -f2- || true)
+fi
+```
+
+We rolled the patched script out fleet-wide using our existing deployment tooling. It backs up the current script on each device before replacing it, then restarts the service. It waits, then captures `systemctl status` per device into a structured result set. That way, a failed rollout on any single unit is immediately visible rather than silent.
+
+The audit script's status check now runs as a standing monitor, so a config-file gap on a newly provisioned device gets caught by the same signal within hours instead of surfacing as a customer-reported outage days later.
+
+<Callout icon="👍" theme="okay">
+  ### Tip
+
+  When rolling out a fix like this across a large fleet, back up the existing script on each device before overwriting it. Capture `systemctl status` per device into a structured result set immediately after restart. That turns "did the rollout work?" into a single glance, instead of a per-device guessing game.
+</Callout>
 
 ## Takeaway
 
-The fix was small. Finding it meant not trusting "random" as an explanation and going looking for the variable that actually correlated.
+A failure that looks randomly distributed across a fleet is often a single deterministic bug. Only some devices happen to trigger it, because of one specific state on those devices. It's not about anything special about the devices themselves. The fix wasn't in "fixing the random ones." It was in finding the one line every failing device had in common.
