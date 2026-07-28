@@ -42,7 +42,7 @@ fi
 
 On devices where that config file happened to be missing, the script never assigned `_site` or `_facility` at all. The very next validation check referenced `_site` to decide whether to log a warning. Under `set -u`, referencing an unset variable there killed the daemon immediately. It died before it could even log the warning it was trying to check for. That made the failure self-hiding: the exact code path meant to handle "config file missing gracefully" crashed the service instead.
 
-It wasn't fleet-wide because it wasn't about the devices — it was about which devices happened to be missing that one local config file, for unrelated provisioning reasons.
+It wasn't fleet-wide because it wasn't about the devices — it was about which devices were missing that one local config file, for unrelated provisioning reasons.
 
 <Callout icon="🚧" theme="warn">
   ### Warning
