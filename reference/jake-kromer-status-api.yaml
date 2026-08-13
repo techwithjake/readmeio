@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: Jake Kromer Status API
+  title: Jake Kromer API
   version: 1.0.0
   description: >
     An unofficial API for checking Jake's current status. Uptime has been
@@ -78,3 +78,4 @@ paths:
                     example: optimal
 components:
   schemas: {}
+x-readme: {}
