@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: Jake Kromer API
+  title: Jake Kromer Status API
   version: 1.0.0
   description: >
     An unofficial API for checking Jake's current status. Uptime has been
