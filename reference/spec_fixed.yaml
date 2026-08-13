@@ -1,0 +1,2088 @@
+openapi: 3.1.0
+info:
+  title: Platform setup - Holidays
+  description: Manage business and non-business days by organization
+  version: v1.0
+  contact:
+    name: Cosmo Support
+    url: https://developers.cosmo.io/support/
+  license:
+    name: Copyright Cosmo
+servers:
+  - url: https://sandbox.cosmolabs.io
+    description: API sandbox server for testing
+security:
+  - S2SAuthentication: []
+tags:
+  - name: Holidays
+    description: View and manage business and non-business days configurations.
+  - name: Holidays v2 - Transaction banking
+    description: >-
+      View and manage business and non-business days configurations (for
+      Transaction banking only)
+  - name: Holiday calendar
+  - name: Holiday calendar data
+components:
+  parameters:
+    AdminDivisionIDQuery:
+      name: administrativeDivisionId
+      in: query
+      description: Administrative Division ID filter
+      required: true
+      schema:
+        type: integer
+        format: int32
+    AdminDivisionIdPath:
+      name: administrative_division_id
+      in: path
+      required: true
+      description: Administrative Division ID
+      schema:
+        type: integer
+        format: int32
+    BeginDateQuery:
+      name: beginDate
+      in: query
+      description: >
+        Get results on or after this date. 
+
+
+        This field indicates what part of the year to start searching for
+        holidays, not when the holiday was created at Cosmo.
+
+
+        Format = yyyy-mm-dd. Must be less than or equal to `endDate`.
+      schema:
+        type: string
+        example: '2025-12-24'
+    CIDheader:
+      name: x-cid
+      in: header
+      schema:
+        type: string
+      description: >
+        The Correlation IDentifier UUID field links related API requests and
+        events. The `x-cid` can help the Cosmo engineering team track everything
+        related to a call. If not passed, this field is automatically generated.
+    DeletedHolidaysQuery:
+      name: deleted
+      in: query
+      description: >-
+        Deleted holidays filter. This field is for internal use only, deleted
+        holidays are not returned,
+      schema:
+        type: boolean
+    EndDateQuery:
+      name: endDate
+      in: query
+      description: >
+        Get holidays on or before this date. 
+
+            
+        This field indicates what part of the year to end searching for
+        holidays, not when the holiday was created at Cosmo.
+
+
+        Format: yyyy-mm-dd. Must be greater than or equal to `beginDate`."
+      schema:
+        type: string
+        example: '2025-11-02'
+    FilterByNameQuery:
+      name: name
+      in: query
+      description: Holiday name filter
+      schema:
+        type: string
+        maxLength: 80
+        example: Independance Day
+    HolidayDateQuery:
+      name: holidayDate
+      in: query
+      description: Holiday date filter. Format = yyyy-mm-dd.
+      schema:
+        type: string
+        example: '2023-01-01'
+    HolidayCalendarIdPath:
+      name: id
+      in: path
+      description: Holiday calendar ID
+      required: true
+      schema:
+        type: string
+        example: '8675309'
+    HolidayCalendarIdPath2:
+      name: holiday_calendar_id
+      in: path
+      description: Holiday calendar ID
+      required: true
+      schema:
+        type: string
+        example: '8675309'
+    HolidayIdPath:
+      name: holiday_id
+      in: path
+      description: Cosmo-assigned holiday ID
+      required: true
+      schema:
+        type: string
+        example: '8675309'
+    HolidayNameQuery:
+      name: name
+      in: query
+      description: Holiday name filter
+      schema:
+        type: string
+        maxLength: 80
+        example: New Year's Day
+    OrderByQuery:
+      name: orderBy
+      in: query
+      description: Sort by `ID` or `NAME`. Default = `ID`.
+      schema:
+        type: string
+        enum:
+          - ID
+          - NAME
+        example: ID
+    OrderQuery:
+      name: order
+      in: query
+      description: |
+        Sort order: `ASC` (ascending) or `DESC` (descending). Default = `ASC`.
+      schema:
+        type: string
+        enum:
+          - ASC
+          - DESC
+        example: ASC
+    OrgHeader:
+      name: x-tenant
+      in: header
+      description: Organization/tenant ID
+      required: true
+      schema:
+        type: string
+    PageNumberQuery:
+      name: page
+      in: query
+      description: Page number.  Default = `1`.
+      schema:
+        type: integer
+        minimum: 1
+        format: int32
+        example: 5
+    PerPageQuery:
+      name: perPage
+      in: query
+      description: Items per page. Default =  `10`. Maximum = `100`.
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+        maximum: 100
+        example: 30
+  schemas:
+    AdminDivIdV1Only:
+      type: integer
+      description: >
+        Administrative division ID. 
+
+
+        When passed as a parameter, either this or `external_id` is
+        **REQUIRED**.
+      example: 100100
+    AdminDivIdV2Only:
+      type: integer
+      description: >
+        Administrative division ID. 
+
+
+        When passed as a parameter, either this or `external_id` is
+        **REQUIRED**.
+
+
+        **Note:** 
+
+        Holiday metadata always takes precedence over the administrative
+        division settings. If a holiday is not specifically configured using the
+        [transaction banking
+        parameters](doc:posting-transactions-on-holidays#parameters), the
+        platform defaults to the settings in the administrative division's
+        `metadata` object when processing transactions.
+      example: 100100
+    CreatedAt:
+      type: string
+      format: datetime
+      description: Date and time the holiday was created. Format = yyyy-mm-ddTHH:mm:ss.
+      example: '2024-04-30T17:24:03'
+    CurrentDate:
+      type: string
+      format: date
+      description: Current date. Format = yyyy-mm-dd.
+      example: '2023-01-02'
+    CurrentPage:
+      type: integer
+      description: Current result page
+      example: 1
+    DeletedAt:
+      type: string
+      format: datetime
+      description: Date and time the holiday was deleted. Format = yyyy-mm-ddTHH:mm:ss.
+      example: '2024-04-30T17:24:03'
+    ExternalId:
+      type: string
+      description: Client-created external ID
+      maxLength: 36
+      minLength: 1
+      example: f89urqljnahosluiefku
+    ExternalId2:
+      type: string
+      description: >
+        Client-created external ID. 
+
+
+        Either this field or `holiday_calendar_id` is **REQUIRED**. Pass one of
+        the other but not both.
+      maxLength: 36
+      minLength: 1
+      example: f89urqljnahosluiefku
+    ExternalIdParent:
+      type: string
+      description: |
+        Client-created external ID for parent calendar. 
+        Refer to `parent_id` parameter for more information.
+      maxLength: 36
+      minLength: 1
+      example: f89urqljnahosluiefku
+    ExternalIdV1Only:
+      type: string
+      description: >
+        Existing ID value from another process or application.
+
+
+        When passed as a parameter, either this or `administrative_division_id`
+        is **REQUIRED**.
+      example: 38400-000
+    handler.HTTPError:
+      description: Error
+      type: object
+      properties:
+        code:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Error message
+    HolidayCalendar:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/HolidayCalendarID'
+        name:
+          $ref: '#/components/schemas/HolidayCalendarName'
+    HolidayCalendarID:
+      type: integer
+      description: Holiday calendar ID
+      example: 8675309
+    HolidayCalendarID2:
+      type: integer
+      description: >
+        Holiday calendar ID. 
+
+
+        Either this field or `external_id` is **REQUIRED**. Pass one of the
+        other but not both.
+      example: 8675309
+    HolidayCalendarName:
+      type: string
+      description: Holiday calendar name
+      maxLength: 80
+      minLength: 1
+      example: Brazil holiday calendar
+    HolidayDate:
+      type: string
+      description: Holiday date. Format = yyyy-mm-dd.
+      example: '2023-12-01'
+    HolidayDescription:
+      type: string
+      description: Holiday description
+      maxLength: 500
+      example: Day to party like it's 1999
+    HolidayID:
+      type: integer
+      description: Holiday ID
+      example: 8675309
+    HolidayName:
+      type: string
+      description: Holiday name
+      example: New Year's Day
+      maxLength: 80
+      minLength: 1
+    HolidayType:
+      type: string
+      description: Type
+      maxLength: 15
+      minLength: 1
+      example: Country
+    HolidayWorkingDays:
+      type: array
+      description: |
+        Working days array
+
+        `1` = Monday, `6` = Saturday. Default = `[1, 2, 3, 4, 5]`.
+      items:
+        type: integer
+        enum:
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+      example:
+        - 1
+        - 2
+        - 3
+        - 4
+        - 5
+        - 6
+    IsHoliday:
+      type: boolean
+      description: Is this a holiday?
+      example: true
+    IsWeekend:
+      type: boolean
+      description: Is this a weekend day?
+      example: true
+    Metadata:
+      type: object
+      description: >
+        A valid JSON schema as specified in
+        https://json-schema.org/specification.html. Used to register rules used
+        to authorize the transaction.
+    MetadataV2:
+      type: object
+      description: >
+        A valid JSON schema, as specified in
+        https://json-schema.org/specification.html. Used to register the rules
+        that are used to authorize the transaction.
+
+
+        You can use metadata <a
+        href="https://developers.cosmo.io/cosmo-docs/docs/posting-transactions-on-holidays#parameters">parameters</a>
+        to specify holiday business rules. For details, refer to <a
+        href="https://developers.cosmo.io/cosmo-docs/docs/posting-transactions-on-holidays">Posting
+        Transactions on Holidays</a>.
+    NextBusinessDate:
+      type: string
+      format: date
+      description: Next work day following the holiday. Format = yyyy-mm-dd.
+      example: '2023-01-02'
+    Pages:
+      type: integer
+      description: Total number of result pages.
+      example: 1
+    pagination.Pagination:
+      type: object
+      properties:
+        current_page:
+          $ref: '#/components/schemas/CurrentPage'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/presenter.HolidayResponse'
+        pages:
+          $ref: '#/components/schemas/Pages'
+        per_page:
+          $ref: '#/components/schemas/PerPage'
+        total_items:
+          $ref: '#/components/schemas/TotalItems'
+    pagination.v2.Pagination:
+      type: object
+      properties:
+        current_page:
+          $ref: '#/components/schemas/CurrentPage'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/presenter.HolidayV2Response'
+        pages:
+          $ref: '#/components/schemas/Pages'
+        per_page:
+          $ref: '#/components/schemas/PerPage'
+        total_items:
+          $ref: '#/components/schemas/TotalItems'
+    pagination.PaginationResponse:
+      type: object
+      properties:
+        current_page:
+          $ref: '#/components/schemas/CurrentPage'
+        items:
+          description: The paginated items
+        pages:
+          $ref: '#/components/schemas/Pages'
+        per_page:
+          $ref: '#/components/schemas/PerPage'
+        total_items:
+          $ref: '#/components/schemas/TotalItems'
+    ParentId:
+      type: integer
+      description: >
+        Calendar parent ID.
+
+
+        Holiday calendars can have parent-child relationships, creating a
+        hierarchy. Child calendars inherit holidays from their parent calendars.
+
+
+        Common use case: Country → State → City hierarchy
+
+
+        Example:
+         - Brazil (parent)
+            - São Paulo (child of Brazil)
+              - Campinas (child of São Paulo)
+
+        When you query holidays for Campinas, you automatically get:
+          - Campinas city holidays
+          - São Paulo state holidays
+          - Brazil national holidays
+
+        You can reference the parent calendar using either:
+          - `parent_id`: The internal parent calendar ID
+          - `parent_external_id`: The parent calendar  `external_id`
+      minimum: 1
+      example: 8675309
+    PerPage:
+      type: integer
+      description: Maximum results per page
+      example: 10
+    presenter.AddHolidayToCalendarRequest:
+      type: object
+      required:
+        - holiday_date
+        - name
+      properties:
+        holiday_date:
+          $ref: '#/components/schemas/HolidayDate'
+        name:
+          $ref: '#/components/schemas/HolidayName'
+        description:
+          $ref: '#/components/schemas/HolidayDescription'
+        external_id:
+          $ref: '#/components/schemas/ExternalId2'
+        holiday_calendar_id:
+          $ref: '#/components/schemas/HolidayCalendarID2'
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+    presenter.AddHolidayToCalendarResponse:
+      type: object
+      properties:
+        created_at:
+          $ref: '#/components/schemas/CreatedAt'
+        description:
+          $ref: '#/components/schemas/HolidayDescription'
+        external_id:
+          $ref: '#/components/schemas/ExternalId'
+        holiday_calendar_id:
+          $ref: '#/components/schemas/HolidayCalendarID'
+        holiday_date:
+          $ref: '#/components/schemas/HolidayDate'
+        holiday_id:
+          $ref: '#/components/schemas/HolidayID'
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+        name:
+          $ref: '#/components/schemas/HolidayName'
+        working_date:
+          $ref: '#/components/schemas/WorkingDate'
+    presenter.AdministrativeDivisionResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Administrative division ID
+          example: 1111
+        name:
+          description: Administrative division name
+          type: string
+          example: Brazil
+    presenter.CreateHolidayCalendarRequest:
+      type: object
+      required:
+        - name
+        - type
+      properties:
+        name:
+          $ref: '#/components/schemas/HolidayCalendarName'
+        type:
+          $ref: '#/components/schemas/HolidayType'
+        external_id:
+          $ref: '#/components/schemas/ExternalId'
+        holidays:
+          type: array
+          description: Holidays array
+          items:
+            $ref: '#/components/schemas/presenter.CreateNewHolidayRequest'
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+        parent_external_id:
+          $ref: '#/components/schemas/ExternalIdParent'
+        parent_id:
+          $ref: '#/components/schemas/ParentId'
+    presenter.CreateHolidayCalendarResponse:
+      type: object
+      properties:
+        external_id:
+          $ref: '#/components/schemas/ExternalId'
+        holiday_calendar_id:
+          $ref: '#/components/schemas/HolidayCalendarID'
+        holidays:
+          type: array
+          items:
+            $ref: '#/components/schemas/presenter.CreateNewHolidayResponse'
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+        name:
+          $ref: '#/components/schemas/HolidayName'
+        parent_external_id:
+          $ref: '#/components/schemas/ExternalIdParent'
+        parent_id:
+          $ref: '#/components/schemas/ParentId'
+        type:
+          $ref: '#/components/schemas/HolidayType'
+        working_days:
+          $ref: '#/components/schemas/HolidayWorkingDays'
+    presenter.CreateNewHolidayResponse:
+      type: object
+      properties:
+        description:
+          $ref: '#/components/schemas/HolidayDescription'
+        holiday_date:
+          $ref: '#/components/schemas/HolidayDate'
+        holiday_id:
+          $ref: '#/components/schemas/HolidayID'
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+        name:
+          $ref: '#/components/schemas/HolidayName'
+        working_date:
+          $ref: '#/components/schemas/WorkingDate'
+    presenter.CreateNewHolidayRequest:
+      type: object
+      required:
+        - name
+        - holiday_date
+      properties:
+        name:
+          $ref: '#/components/schemas/HolidayName'
+        holiday_date:
+          $ref: '#/components/schemas/HolidayDate'
+        description:
+          $ref: '#/components/schemas/HolidayDescription'
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+        working_date:
+          $ref: '#/components/schemas/WorkingDate'
+    presenter.CreateHolidayRequest:
+      description: Data to create a holiday.
+      type: object
+      required:
+        - name
+        - holiday_date
+        - working_date
+      properties:
+        name:
+          $ref: '#/components/schemas/HolidayName'
+        holiday_date:
+          $ref: '#/components/schemas/HolidayDate'
+        working_date:
+          $ref: '#/components/schemas/NextBusinessDate'
+        administrative_division_id:
+          $ref: '#/components/schemas/AdminDivIdV1Only'
+        external_id:
+          $ref: '#/components/schemas/ExternalIdV1Only'
+    presenter.CreateHolidayRequestV2:
+      description: Create holiday for transaction banking payload
+      type: object
+      required:
+        - name
+        - holiday_date
+      properties:
+        name:
+          $ref: '#/components/schemas/HolidayName'
+        holiday_date:
+          $ref: '#/components/schemas/HolidayDate'
+        description:
+          $ref: '#/components/schemas/HolidayDescription'
+        administrative_division_id:
+          $ref: '#/components/schemas/AdminDivIdV2Only'
+        external_id:
+          $ref: '#/components/schemas/ExternalIdV1Only'
+        metadata:
+          $ref: '#/components/schemas/MetadataV2'
+    presenter.CreateHolidayResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/HolidayID'
+        name:
+          $ref: '#/components/schemas/HolidayName'
+        holiday_date:
+          $ref: '#/components/schemas/HolidayDate'
+        working_date:
+          $ref: '#/components/schemas/NextBusinessDate'
+        administrative_division_id:
+          $ref: '#/components/schemas/AdminDivIdV1Only'
+    presenter.CreateHolidayResponseV2:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/HolidayID'
+        name:
+          $ref: '#/components/schemas/HolidayName'
+        description:
+          $ref: '#/components/schemas/HolidayDescription'
+        holiday_date:
+          $ref: '#/components/schemas/HolidayDate'
+        next_business_date:
+          $ref: '#/components/schemas/NextBusinessDate'
+        administrative_division_id:
+          $ref: '#/components/schemas/AdminDivIdV1Only'
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+    presenter.GetHolidayCalendarResponse:
+      type: object
+      properties:
+        external_id:
+          $ref: '#/components/schemas/ExternalId'
+        holiday_calendar_id:
+          $ref: '#/components/schemas/HolidayCalendarID'
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+        name:
+          $ref: '#/components/schemas/HolidayCalendarName'
+        parent_id:
+          $ref: '#/components/schemas/ParentId'
+        type:
+          $ref: '#/components/schemas/HolidayType'
+        working_days:
+          $ref: '#/components/schemas/HolidayWorkingDays'
+    presenter.GetHolidayResponse:
+      type: object
+      properties:
+        created_at:
+          $ref: '#/components/schemas/CreatedAt'
+        deleted_at:
+          $ref: '#/components/schemas/DeletedAt'
+        description:
+          $ref: '#/components/schemas/HolidayDescription'
+        holiday_calendar:
+          $ref: '#/components/schemas/HolidayCalendar'
+        holiday_date:
+          $ref: '#/components/schemas/HolidayDate'
+        holiday_id:
+          $ref: '#/components/schemas/HolidayID'
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+        name:
+          $ref: '#/components/schemas/HolidayName'
+        updated_at:
+          $ref: '#/components/schemas/UpdatedAt'
+    presenter.HolidayCalendarSearchBusinessDayRequest:
+      type: object
+      required:
+        - current_date
+      properties:
+        current_date:
+          $ref: '#/components/schemas/CurrentDate'
+    presenter.HolidayCalendarBusinessDayBatchResponse:
+      type: object
+      properties:
+        working_days:
+          type: array
+          items:
+            $ref: >-
+              #/components/schemas/presenter.HolidayCalendarSearchBusinessDayResponse
+    presenter.HolidayCalendarNonBusinessDaysResponse:
+      type: object
+      properties:
+        dates:
+          type: array
+          items:
+            $ref: '#/components/schemas/presenter.NonBusinessDay'
+        holiday_calendar_metadata:
+          $ref: '#/components/schemas/Metadata'
+    presenter.HolidayCalendarSearchBusinessDayResponse:
+      type: object
+      properties:
+        current_date:
+          $ref: '#/components/schemas/CurrentDate'
+        description:
+          $ref: '#/components/schemas/HolidayDescription'
+        holiday_calendar_id:
+          $ref: '#/components/schemas/HolidayCalendarID'
+        holiday_calendar_metadata:
+          $ref: '#/components/schemas/Metadata'
+        holiday_metadata:
+          $ref: '#/components/schemas/Metadata'
+        is_holiday:
+          $ref: '#/components/schemas/IsHoliday'
+        is_weekend:
+          $ref: '#/components/schemas/IsWeekend'
+        name:
+          $ref: '#/components/schemas/HolidayName'
+        next_business_date:
+          $ref: '#/components/schemas/NextBusinessDate'
+        prior_business_date:
+          $ref: '#/components/schemas/PriorBusinessDate'
+    presenter.HolidayCalendarValidateHolidayRequest:
+      required:
+        - date
+      properties:
+        date:
+          $ref: '#/components/schemas/HolidayDate'
+    presenter.HolidayCalendarValidateHolidayResponse:
+      type: object
+      properties:
+        created_at:
+          $ref: '#/components/schemas/CreatedAt'
+        holiday_calendar:
+          $ref: '#/components/schemas/HolidayCalendar'
+        holiday_date:
+          $ref: '#/components/schemas/HolidayDate'
+        holiday_id:
+          $ref: '#/components/schemas/HolidayID'
+        name:
+          $ref: '#/components/schemas/HolidayName'
+        working_date:
+          $ref: '#/components/schemas/WorkingDate'
+    presenter.HolidayResponse:
+      type: object
+      properties:
+        administrative_division:
+          $ref: '#/components/schemas/presenter.AdministrativeDivisionResponse'
+        id:
+          $ref: '#/components/schemas/HolidayID'
+        name:
+          $ref: '#/components/schemas/HolidayName'
+        holiday_date:
+          $ref: '#/components/schemas/HolidayDate'
+        next_business_date:
+          $ref: '#/components/schemas/NextBusinessDate'
+        created_at:
+          $ref: '#/components/schemas/CreatedAt'
+    presenter.HolidayV2Response:
+      type: object
+      properties:
+        administrative_division:
+          $ref: '#/components/schemas/presenter.AdministrativeDivisionResponse'
+        id:
+          $ref: '#/components/schemas/HolidayID'
+        name:
+          $ref: '#/components/schemas/HolidayName'
+        description:
+          $ref: '#/components/schemas/HolidayDescription'
+        holiday_date:
+          $ref: '#/components/schemas/HolidayDate'
+        working_date:
+          $ref: '#/components/schemas/WorkingDate'
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+        created_at:
+          $ref: '#/components/schemas/CreatedAt'
+    presenter.ListHolidayCalendarResponse:
+      type: object
+      properties:
+        current_page:
+          $ref: '#/components/schemas/CurrentPage'
+        pages:
+          $ref: '#/components/schemas/Pages'
+        per_page:
+          $ref: '#/components/schemas/PerPage'
+        total_items:
+          $ref: '#/components/schemas/TotalItems'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/presenter.GetHolidayCalendarResponse'
+    presenter.ListHolidayResponse:
+      type: object
+      properties:
+        current_page:
+          $ref: '#/components/schemas/CurrentPage'
+        pages:
+          $ref: '#/components/schemas/Pages'
+        per_page:
+          $ref: '#/components/schemas/PerPage'
+        total_items:
+          $ref: '#/components/schemas/TotalItems'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/presenter.GetHolidayResponse'
+    presenter.NonBusinessDay:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+          description: Non-business day date. Format = yyyy-mm-dd.
+          example: '2023-01-20'
+        is_holiday:
+          $ref: '#/components/schemas/IsHoliday'
+        is_weekend:
+          $ref: '#/components/schemas/IsWeekend'
+        holiday_metadata:
+          type: object
+          additionalProperties:
+            type: object
+          description: >
+            A valid JSON schema as specified in
+            https://json-schema.org/specification.html. Used to register rules
+            used for transaction authorization.
+    presenter.NonBusinessDaysResponse:
+      type: object
+      properties:
+        dates:
+          type: array
+          items:
+            $ref: '#/components/schemas/presenter.NonBusinessDay'
+        division_metadata:
+          $ref: '#/components/schemas/Metadata'
+    presenter.SearchBusinessDayRequest:
+      type: object
+      required:
+        - current_date
+        - division_id
+      properties:
+        current_date:
+          $ref: '#/components/schemas/HolidayDate'
+        division_id:
+          type: integer
+          description: Division ID
+    presenter.SearchBusinessDayResponse:
+      properties:
+        division_id:
+          description: Division ID
+          type: integer
+          example: 100
+        name:
+          $ref: '#/components/schemas/HolidayName'
+        description:
+          $ref: '#/components/schemas/HolidayDescription'
+        current_date:
+          $ref: '#/components/schemas/CurrentDate'
+        next_business_date:
+          $ref: '#/components/schemas/NextBusinessDate'
+        prior_business_date:
+          $ref: '#/components/schemas/PriorBusinessDate'
+        is_holiday:
+          $ref: '#/components/schemas/IsHoliday'
+        is_weekend:
+          $ref: '#/components/schemas/IsWeekend'
+        holiday_metadata:
+          $ref: '#/components/schemas/Metadata'
+        division_metadata:
+          $ref: '#/components/schemas/Metadata'
+    presenter.UpdateHolidayInGroupRequest:
+      type: object
+      properties:
+        description:
+          $ref: '#/components/schemas/HolidayDescription'
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+        name:
+          $ref: '#/components/schemas/HolidayName'
+    presenter.UpdateHolidayRequest:
+      description: Data to update a holiday
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          $ref: '#/components/schemas/HolidayName'
+    presenter.UpdateHolidayResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/HolidayID'
+        name:
+          $ref: '#/components/schemas/HolidayName'
+    presenter.UpdateHolidayV2Request:
+      description: Data to update a holiday
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          $ref: '#/components/schemas/HolidayName'
+        description:
+          $ref: '#/components/schemas/HolidayDescription'
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+    presenter.UpdateHolidayV2Response:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/HolidayID'
+        name:
+          $ref: '#/components/schemas/HolidayName'
+        description:
+          $ref: '#/components/schemas/HolidayDescription'
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+    presenter.ValidateHolidayRequest:
+      type: object
+      required:
+        - date
+        - division_id
+      properties:
+        date:
+          $ref: '#/components/schemas/HolidayDate'
+        division_id:
+          type: integer
+          description: Division ID
+          example: 100
+    PriorBusinessDate:
+      type: string
+      format: date
+      description: Business day prior to holiday. Format = yyyy-mm-dd.
+      example: '2023-01-02'
+    TotalItems:
+      type: integer
+      description: Total number of result items
+      example: 11
+    UpdatedAt:
+      type: string
+      format: datetime
+      description: Date and time the holiday was updated. Format = yyyy-mm-ddTHH:mm:ss.
+      example: '2024-04-30T17:24:03'
+    WorkingDate:
+      type: string
+      format: date
+      description: Next work day following the holiday. Format = yyyy-mm-dd.
+      example: '2023-01-02'
+  responses:
+    400BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/handler.HTTPError'
+          examples:
+            missing-x-tenant-header:
+              $ref: '#/components/examples/BadRequestResponseMissingHeader'
+            invalid-id-params:
+              $ref: '#/components/examples/BadRequestResponseInvalidParams'
+    400BadRequestGetBusinessDay:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/handler.HTTPError'
+          examples:
+            missing-x-tenant-header:
+              $ref: '#/components/examples/BadRequestResponseMissingHeader'
+            missing-invalid-holiday-calendar-id:
+              $ref: '#/components/examples/BadRequestResponseMissingRequiredFields'
+            invalid-date-format:
+              $ref: '#/components/examples/BadRequestResponseHolidayWrongFormat'
+            missing-current-date:
+              $ref: '#/components/examples/BadRequestResponseMissingRequiredFields'
+    400BadRequestGetNonBusinessDay:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/handler.HTTPError'
+          examples:
+            missing-x-tenant-header:
+              $ref: '#/components/examples/BadRequestResponseMissingHeader'
+            missing-required-fields:
+              $ref: '#/components/examples/BadRequestResponseMissingRequiredFields'
+            invalid-date-format:
+              $ref: '#/components/examples/BadRequestResponseHolidayWrongFormat'
+    400BadRequestCreateHoliday:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/handler.HTTPError'
+          examples:
+            missing-x-tenant-header:
+              $ref: '#/components/examples/BadRequestResponseMissingHeader'
+            invalid-id-params:
+              $ref: '#/components/examples/BadRequestResponseInvalidParams'
+            holiday-date-wrong-format:
+              $ref: '#/components/examples/BadRequestResponseHolidayWrongFormat'
+            working-date-wrong-format:
+              $ref: '#/components/examples/BadRequestResponseWorkingDateWrongFormat'
+            working-date-less-than-current-date:
+              $ref: '#/components/examples/BadRequestResponseDatesWrong'
+            holiday-already-exists:
+              $ref: '#/components/examples/BadRequestResponseAlreadyExists'
+    400BadRequestCreateHolidayCalendar:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/handler.HTTPError'
+          examples:
+            missing-x-tenant-header:
+              $ref: '#/components/examples/BadRequestResponseMissingHeader'
+            missing-required-fields:
+              $ref: '#/components/examples/BadRequestResponseMissingRequiredFields'
+            holiday-date-wrong-format:
+              $ref: '#/components/examples/BadRequestResponseHolidayWrongFormat'
+            working-date-wrong-format:
+              $ref: '#/components/examples/BadRequestResponseWorkingDateWrongFormat'
+            invalid-metadata:
+              $ref: '#/components/examples/BadRequestResponseInvalidMetadata'
+    400BadRequestAddHoliday:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/handler.HTTPError'
+          examples:
+            missing-x-tenant-header:
+              $ref: '#/components/examples/BadRequestResponseMissingHeader'
+            missing-required-fields:
+              $ref: '#/components/examples/BadRequestResponseMissingRequiredFields'
+            holiday-date-wrong-format:
+              $ref: '#/components/examples/BadRequestResponseHolidayWrongFormat'
+            working-date-wrong-format:
+              $ref: '#/components/examples/BadRequestResponseHolidayWrongFormat'
+            working-date-before-holiday-date:
+              $ref: >-
+                #/components/examples/BadRequestResponseWorkingDateBeforeHolidayDate
+            invalid-metadata:
+              $ref: '#/components/examples/BadRequestResponseInvalidMetadata'
+    400BadRequestUpdateHoliday:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/handler.HTTPError'
+          examples:
+            missing-x-tenant-header:
+              $ref: '#/components/examples/BadRequestResponseMissingHeader'
+            invalid-id-params:
+              $ref: '#/components/examples/BadRequestResponseInvalidParams'
+            holiday-not-found:
+              $ref: '#/components/examples/BadRequestResponseNotFound'
+    400BadRequestListHolidays:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/handler.HTTPError'
+          examples:
+            missing-x-tenant-header:
+              $ref: '#/components/examples/BadRequestResponseMissingHeader'
+            invalid-order-query:
+              $ref: '#/components/examples/BadRequestResponseInvalidOrder'
+            invalid-perpage-query:
+              $ref: '#/components/examples/BadRequestResponseInvalidPerPage'
+            end-date-before-begin-date:
+              $ref: '#/components/examples/BadRequestResponseEndDateBeforeBeginDate'
+            end-date-wrong-format:
+              $ref: '#/components/examples/BadRequestResponseEndDateWrongFormat'
+            begin-date-wrong-format:
+              $ref: '#/components/examples/BadRequestResponseBeginDateWrongFormat'
+    401UnauthorizedError:
+      description: Access token missing or invalid
+    404NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/handler.HTTPError'
+          examples:
+            response-missing-tenant:
+              $ref: '#/components/examples/NotFoundResponse'
+    404NotFoundCreateHolidayCalendar:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/handler.HTTPError'
+          examples:
+            holiday-calendar-not-found:
+              $ref: '#/components/examples/BadRequestResponseHolidayCalendarNotFound'
+    404NotFoundAddHoliday:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/handler.HTTPError'
+          examples:
+            holiday-calendar-not-found:
+              $ref: '#/components/examples/BadRequestResponseHolidayCalendarNotFound'
+            administrative-division-not-found:
+              $ref: '#/components/examples/BadRequestResponseAdminDivisionNotFound'
+    409ConflictAddHoliday:
+      description: Conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/handler.HTTPError'
+          examples:
+            holiday-exists-in-group:
+              $ref: '#/components/examples/BadRequestResponseAlreadyExists'
+    409ConflicCreateHolidayCalendar:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/handler.HTTPError'
+          examples:
+            holiday-calendar-already-exists:
+              $ref: '#/components/examples/BadRequestResponseAlreadyExists'
+    500InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/handler.HTTPError'
+          examples:
+            generic-internal-error:
+              $ref: '#/components/examples/InternalServerErrorResponse'
+  securitySchemes:
+    S2SAuthentication:
+      type: http
+      scheme: bearer
+      description: >
+        All requests must pass an [account-specific
+        token](https://developers.cosmo.io/cosmo-docs/docs/account-specific-access-tokens).
+  examples:
+    InternalServerErrorResponse:
+      value:
+        code: EHLD0001
+        message: Something went wrong - please try again
+    BadRequestResponseMissingHeader:
+      value:
+        code: EHLD0016
+        message: Missing x-tenant header
+    BadRequestResponseAdminDivisionNotFound:
+      value:
+        code: EHLD0026
+        message: Administrative division not found
+    BadRequestResponseAlreadyExists:
+      value:
+        code: EHLD0027
+        message: Holiday calendar already exists
+    BadRequestResponseHolidayWrongFormat:
+      value:
+        code: EHLD0028
+        message: Holiday date with the wrong format
+    BadRequestResponseWorkingDateWrongFormat:
+      value:
+        code: EHLD0030
+        message: Working date with the wrong format
+    BadRequestResponseDatesWrong:
+      value:
+        code: EHLD0031
+        message: Working date less than the current date
+    BadRequestResponseWorkingDateBeforeHolidayDate:
+      value:
+        code: EHLD0032
+        message: Working date before holiday date
+    BadRequestResponseNotFound:
+      value:
+        code: EHLD0034
+        message: Holiday not found
+    BadRequestResponseInvalidParams:
+      value:
+        code: '400'
+        message: 'Invalid parameter value: {parameter name}'
+    BadRequestResponseInvalidPerPage:
+      value:
+        code: EHLD0039
+        message: Invalid 'perPage' query param with value '10A'. PerPage must be > 0.
+    BadRequestResponseInvalidOrder:
+      value:
+        code: EHLD0041
+        message: >-
+          Invalid 'order' query param with value 'ascaa'. Order must be asc or
+          desc.
+    BadRequestResponseEndDateBeforeBeginDate:
+      value:
+        code: EHLD0046
+        message: End date before Begin date
+    BadRequestResponseBeginDateWrongFormat:
+      value:
+        code: EHLD0047
+        message: Begin date with the wrong format
+    BadRequestResponseEndDateWrongFormat:
+      value:
+        code: EHLD0048
+        message: End date with the wrong format
+    BadRequestResponseInvalidMetadata:
+      value:
+        code: EHLD0049
+        message: Invalid metadata
+    BadRequestResponseMissingRequiredFields:
+      value:
+        code: EHLD0050
+        message: Missing required fields
+    BadRequestResponseHolidayCalendarNotFound:
+      value:
+        code: EHLD0052
+        message: Holiday calendar not found
+    NotFoundResponse:
+      value:
+        code: '404'
+        message: '{target name} not found'
+    CreateHolidayResponseV2:
+      value:
+        id: 1
+        name: New Year's Day
+        description: New Year's Day
+        holiday_date: '2023-01-01'
+        administrative_division_id: 1
+        metadata:
+          accrue_interest: true
+          check_dormancy: true
+          create_account: false
+          defer_statement_due_date: true
+          defer_transactions: true
+          post_interest: false
+          post_transactions: false
+          run_cycle_closing: false
+          any_value: any_value
+    SearchBusinessDayResponse:
+      value:
+        division_id: 1
+        name: New Year's Day
+        description: New Year's Day
+        current_date: '2023-01-01'
+        next_business_date: '2023-01-02'
+        prior_business_date: '2022-12-31'
+        is_holiday: true
+        is_weekend: false
+        holiday_metadata:
+          accrue_interest: true
+          check_dormancy: true
+          create_account: false
+          defer_statement_due_date: true
+          defer_transactions: true
+          post_interest: false
+          post_transactions: false
+          run_cycle_closing: false
+        division_metadata:
+          accrue_interest: true
+          check_dormancy: true
+          create_account: false
+          defer_statement_due_date: true
+          defer_transactions: true
+          post_interest: false
+          post_transactions: false
+          run_cycle_closing: false
+    NonBusinessDaysResponse:
+      value:
+        division_metadata:
+          accrue_interest: true
+          check_dormancy: true
+          create_account: false
+          defer_statement_due_date: true
+          defer_transactions: true
+          post_interest: false
+          post_transactions: false
+          run_cycle_closing: false
+        holiday_metadata:
+          accrue_interest: true
+          check_dormancy: true
+          create_account: false
+          defer_statement_due_date: true
+          defer_transactions: true
+          post_interest: false
+          post_transactions: false
+          run_cycle_closing: false
+        dates:
+          - date: '2024-11-02'
+            is_holiday: true
+            is_weekend: true
+          - date: '2024-11-03'
+            is_holiday: false
+            is_weekend: true
+          - date: '2024-11-09'
+            is_holiday: false
+            is_weekend: true
+paths:
+  /holidays-core/v1/holiday:
+    post:
+      summary: Create holiday
+      description: >
+        Create a holiday&mdash;a day on which your company's offices are closed
+        for normal business activity though online financial transactions and
+        other business activity could still be occurring.
+
+
+        For more information, refer to <a
+        href="https://developers.cosmo.io/cosmo-docs/docs/platform-setup-holidays">Platform
+        setup - Holidays and administrative divisions</a>.
+      tags:
+        - Holidays
+      operationId: post-holiday
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/presenter.CreateHolidayRequest'
+      responses:
+        '201':
+          description: Holidays response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/presenter.CreateHolidayResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '401':
+          $ref: '#/components/responses/401UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+    get:
+      summary: List holidays
+      description: |
+        Return a paginated list of holidays registered for an organization.
+      operationId: get-v1-holidays
+      tags:
+        - Holidays
+      parameters:
+        - $ref: '#/components/parameters/PageNumberQuery'
+        - $ref: '#/components/parameters/PerPageQuery'
+        - $ref: '#/components/parameters/OrderQuery'
+        - $ref: '#/components/parameters/OrderByQuery'
+        - $ref: '#/components/parameters/AdminDivisionIDQuery'
+        - $ref: '#/components/parameters/FilterByNameQuery'
+        - $ref: '#/components/parameters/HolidayDateQuery'
+        - $ref: '#/components/parameters/BeginDateQuery'
+        - $ref: '#/components/parameters/EndDateQuery'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pagination.Pagination'
+        '400':
+          $ref: '#/components/responses/400BadRequestListHolidays'
+        '401':
+          $ref: '#/components/responses/401UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /holidays-core/v1/holiday/validate:
+    post:
+      summary: Get holiday
+      description: |
+        Get information for an administrative division's holiday.
+
+         **Note:** The response could contain outdated information until at least one minute after an update is made to an administrative division.
+      operationId: validate-v1-holiday
+      tags:
+        - Holidays
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/presenter.ValidateHolidayRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/presenter.HolidayResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequestGetBusinessDay'
+        '401':
+          $ref: '#/components/responses/401UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/404NotFoundCreateHolidayCalendar'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /holidays-core/v1/holiday/{holiday_id}:
+    put:
+      summary: Update holiday name
+      description: |
+        Update a holiday's name.
+      operationId: put-v1-holiday
+      tags:
+        - Holidays
+      parameters:
+        - $ref: '#/components/parameters/HolidayIdPath'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/presenter.UpdateHolidayRequest'
+      responses:
+        '200':
+          description: Updated holiday name
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/presenter.UpdateHolidayResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '401':
+          $ref: '#/components/responses/401UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+    delete:
+      summary: Delete holiday
+      description: |
+        Delete a holiday.
+      tags:
+        - Holidays
+      operationId: delete-v1-holiday
+      parameters:
+        - $ref: '#/components/parameters/HolidayIdPath'
+      responses:
+        '204':
+          description: No content
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '401':
+          $ref: '#/components/responses/401UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /holidays-core/v1/search-business-day:
+    post:
+      summary: Check if business day
+      description: >
+        Check if a specific date is a business day for an administrative
+        division.
+
+
+        **Note:** The response could contain outdated information until at least
+        one minute after an administrative division update.
+      operationId: v1-search-business-day
+      tags:
+        - Holidays
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/presenter.SearchBusinessDayRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/presenter.SearchBusinessDayResponse'
+              examples:
+                response-v1-search-business-day:
+                  $ref: '#/components/examples/SearchBusinessDayResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '401':
+          $ref: '#/components/responses/401UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /holidays-core/v1/non-business-days:
+    get:
+      summary: List non-business days
+      description: |
+        Return a list of non-business days.
+      operationId: v1-get-non-business-days
+      tags:
+        - Holidays
+      parameters:
+        - $ref: '#/components/parameters/OrgHeader'
+        - $ref: '#/components/parameters/CIDheader'
+        - $ref: '#/components/parameters/AdminDivisionIDQuery'
+        - $ref: '#/components/parameters/BeginDateQuery'
+        - $ref: '#/components/parameters/EndDateQuery'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/presenter.NonBusinessDaysResponse'
+              examples:
+                response-v1-non-business-days:
+                  $ref: '#/components/examples/NonBusinessDaysResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequestGetNonBusinessDay'
+        '401':
+          $ref: '#/components/responses/401UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/404NotFoundCreateHolidayCalendar'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /holidays-core/v1/holiday/administrative-division/{administrative_division_id}/ancestors:
+    get:
+      summary: List holidays with administrative division ancestors
+      description: >
+        Return a paginated list of holidays registered for an administrative
+        division, including those inherited from a parent division.
+      operationId: get-v1-holidays-with-administrative-divisions-ancestors
+      tags:
+        - Holidays
+      parameters:
+        - $ref: '#/components/parameters/AdminDivisionIdPath'
+        - $ref: '#/components/parameters/PageNumberQuery'
+        - $ref: '#/components/parameters/PerPageQuery'
+        - $ref: '#/components/parameters/OrderQuery'
+        - $ref: '#/components/parameters/OrderByQuery'
+        - $ref: '#/components/parameters/BeginDateQuery'
+        - $ref: '#/components/parameters/EndDateQuery'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pagination.Pagination'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '401':
+          $ref: '#/components/responses/401UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /holidays-core/v2/holiday:
+    post:
+      summary: Create holiday
+      description: >
+        Create a holiday&mdash;a day on which your company's offices are closed
+        for normal business activity though online financial transactions and
+        other business activity could still be occurring. 
+
+
+        **Note:** This endpoint is designed for transaction banking. For more
+        information, refer to [Calendars and holidays in transaction
+        banking](doc:calendars-and-holidays-in-transaction-banking).
+      operationId: post-v2-holiday
+      tags:
+        - Holidays v2 - Transaction banking
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/presenter.CreateHolidayRequestV2'
+      responses:
+        '201':
+          description: Holidays response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/presenter.CreateHolidayResponseV2'
+              examples:
+                response-create-holidays-v2:
+                  $ref: '#/components/examples/CreateHolidayResponseV2'
+        '400':
+          $ref: '#/components/responses/400BadRequestCreateHoliday'
+        '401':
+          $ref: '#/components/responses/401UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+    get:
+      summary: List holidays
+      description: >
+        Return a paginated list of holidays registered for an organization. 
+
+
+        **Note:** This endpoint is designed for transaction banking. For more
+        information, refer to [Calendars and holidays in transaction
+        banking](doc:calendars-and-holidays-in-transaction-banking).
+      operationId: get-v2-holidays
+      tags:
+        - Holidays v2 - Transaction banking
+      parameters:
+        - $ref: '#/components/parameters/PageNumberQuery'
+        - $ref: '#/components/parameters/PerPageQuery'
+        - $ref: '#/components/parameters/OrderQuery'
+        - $ref: '#/components/parameters/OrderByQuery'
+        - $ref: '#/components/parameters/AdminDivisionIDQuery'
+        - $ref: '#/components/parameters/HolidayNameQuery'
+        - $ref: '#/components/parameters/HolidayDateQuery'
+        - $ref: '#/components/parameters/BeginDateQuery'
+        - $ref: '#/components/parameters/EndDateQuery'
+        - $ref: '#/components/parameters/DeletedHolidaysQuery'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pagination.v2.Pagination'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '401':
+          $ref: '#/components/responses/401UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /holidays-core/v2/holiday/{holiday_id}:
+    put:
+      summary: Update holiday
+      description: >
+        Update some holiday information. Only parameters that are passed are
+        updated.
+
+
+        **Note:** This endpoint is designed for transaction banking. For more
+        information, refer to [Calendars and holidays in transaction
+        banking](doc:calendars-and-holidays-in-transaction-banking).
+      operationId: put-v2-holiday
+      tags:
+        - Holidays v2 - Transaction banking
+      parameters:
+        - $ref: '#/components/parameters/HolidayIdPath'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/presenter.UpdateHolidayV2Request'
+      responses:
+        '200':
+          description: Updated holiday
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/presenter.UpdateHolidayV2Response'
+        '400':
+          $ref: '#/components/responses/400BadRequestUpdateHoliday'
+        '401':
+          $ref: '#/components/responses/401UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /v1/holiday-calendar:
+    post:
+      summary: Create holiday calendar
+      description: |
+        Creates a new holiday calendar with associated holidays. 
+
+        This endpoint does not generate an event.
+      operationId: post-create-holiday-calendar
+      tags:
+        - Holiday calendar
+      requestBody:
+        description: Create holiday calendar request body
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/presenter.CreateHolidayCalendarRequest'
+      responses:
+        '201':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/presenter.CreateHolidayCalendarResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequestCreateHolidayCalendar'
+        '404':
+          $ref: '#/components/responses/404NotFoundCreateHolidayCalendar'
+        '409':
+          $ref: '#/components/responses/409ConflicCreateHolidayCalendar'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /v1/holiday-calendar/{holiday_calendar_id}:
+    get:
+      summary: Get holiday calendar
+      description: Get a holiday calendar
+      operationId: get-holiday-calendar
+      tags:
+        - Holiday calendar data
+      parameters:
+        - $ref: '#/components/parameters/HolidayCalendarIdPath2'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/presenter.GetHolidayCalendarResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+    patch:
+      summary: Update holiday calendar
+      description: Update a holiday calendar. Fields not passed are not updated.
+      tags:
+        - Holiday calendar
+      operationId: update-holiday-calendar
+      parameters:
+        - $ref: '#/components/parameters/HolidayCalendarIdPath2'
+      requestBody:
+        description: Business day search request body
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/presenter.UpdateHolidayInGroupRequest'
+      responses:
+        '204':
+          description: No Content
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+    delete:
+      summary: Delete holiday calendar
+      description: Delete a holiday calendar
+      operationId: delete-holiday-calendar
+      tags:
+        - Holiday calendar
+      parameters:
+        - $ref: '#/components/parameters/HolidayCalendarIdPath2'
+        - $ref: '#/components/parameters/OrgHeader'
+        - $ref: '#/components/parameters/CIDheader'
+      responses:
+        '204':
+          description: No Content
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /v1/holiday-calendar/external-id/{holiday_calendar_id}:
+    get:
+      summary: Get calendar by external ID
+      description: Get a holiday calendar given its ID in path.
+      operationId: get-holiday-calendar-by-id
+      tags:
+        - Holiday calendar data
+      parameters:
+        - $ref: '#/components/parameters/HolidayCalendarIdPath2'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/presenter.GetHolidayCalendarResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /v1/holiday-calendar/{holiday_calendar_id}/holiday:
+    get:
+      summary: List calendar holidays
+      description: List calendar holidays
+      operationId: get-holiday-new
+      tags:
+        - Holiday calendar data
+      parameters:
+        - $ref: '#/components/parameters/HolidayCalendarIdPath2'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/presenter.ListHolidayResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /v1/holiday-calendar/holiday:
+    post:
+      summary: Add holiday
+      description: |
+        Add a new holiday to an existing holiday calendar. 
+
+        This endpoint generates a _______ event.
+      operationId: post-add-holiday-to-calendar
+      tags:
+        - Holiday calendar
+      requestBody:
+        description: Holiday creation request data
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/presenter.AddHolidayToCalendarRequest'
+      responses:
+        '201':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/presenter.AddHolidayToCalendarResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequestAddHoliday'
+        '404':
+          $ref: '#/components/responses/404NotFoundAddHoliday'
+        '409':
+          $ref: '#/components/responses/409ConflictAddHoliday'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /v1/holiday-calendar/{holiday_calendar_id}/holiday/{holiday_id}:
+    patch:
+      summary: Update holiday
+      description: Update a holiday in a holiday calendar.
+      operationId: patch-group-holiday
+      tags:
+        - Holiday calendar
+      parameters:
+        - $ref: '#/components/parameters/HolidayCalendarIdPath2'
+        - $ref: '#/components/parameters/HolidayIdPath'
+      requestBody:
+        description: Holiday update data
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/presenter.UpdateHolidayInGroupRequest'
+      responses:
+        '204':
+          description: No Content
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+    delete:
+      summary: Delete holiday
+      description: Delete a holiday
+      operationId: delete-holiday
+      tags:
+        - Holiday calendar
+      parameters:
+        - $ref: '#/components/parameters/HolidayCalendarIdPath2'
+        - $ref: '#/components/parameters/HolidayIdPath'
+      responses:
+        '204':
+          description: No Content
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /v1/holiday-calendar/{holiday_calendar_id}/ancestors:
+    get:
+      summary: List ancestors
+      description: Get a list of holiday calendars by ID
+      operationId: get-list-holiday-calendars
+      tags:
+        - Holiday calendar data
+      parameters:
+        - $ref: '#/components/parameters/HolidayCalendarIdPath2'
+        - $ref: '#/components/parameters/OrgHeader'
+        - $ref: '#/components/parameters/CIDheader'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/presenter.ListHolidayCalendarResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /v1/holiday-calendar/external-id/{holiday_calendar_id}/ancestors:
+    get:
+      summary: List ancestors by external ID
+      description: Get a list of holiday calendar by external ID
+      operationId: get-holiday-calendar-list
+      tags:
+        - Holiday calendar data
+      parameters:
+        - $ref: '#/components/parameters/HolidayCalendarIdPath2'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/presenter.ListHolidayCalendarResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /v1/holiday-calendar/{holiday_calendar_id}/tree:
+    get:
+      summary: Get child group holiday tree
+      description: Returns the complete tree of child group holiday by group holiday ID
+      operationId: get-child-group-holiday-tree
+      tags:
+        - Holiday calendar data
+      parameters:
+        - $ref: '#/components/parameters/HolidayCalendarIdPath2'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/presenter.ListHolidayCalendarResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /v1/holiday-calendar/external-id/{holiday_calendar_id}/tree:
+    get:
+      summary: Get holiday calendar tree
+      description: >-
+        Returns the complete tree of holiday calendar by external id (defined by
+        the customer)
+      operationId: get-holiday-calendar-tree
+      tags:
+        - Holiday calendar data
+      parameters:
+        - $ref: '#/components/parameters/HolidayCalendarIdPath2'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/presenter.ListHolidayCalendarResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /v1/holiday-calendar/{holiday_calendar_id}/validate:
+    post:
+      summary: Validate holiday
+      description: >
+        Checks if the provided date is a holiday for the specified holiday
+        calendar or any of its ancestor groups. Returns holiday details if the
+        date is a holiday in the group hierarchy. Returns 404 if the date is not
+        a holiday or the group does not exist. Does not create or update any
+        data.
+      operationId: post-validate-date
+      x-internal: true
+      tags:
+        - Holiday calendar
+      parameters:
+        - $ref: '#/components/parameters/HolidayCalendarIdPath2'
+        - $ref: '#/components/parameters/OrgHeader'
+        - $ref: '#/components/parameters/CIDheader'
+      requestBody:
+        description: Holiday update data
+        content:
+          application/json:
+            schema:
+              $ref: >-
+                #/components/schemas/presenter.HolidayCalendarValidateHolidayRequest
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: >-
+                  #/components/schemas/presenter.HolidayCalendarValidateHolidayResponse
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /v1/holiday-calendar/{holiday_calendar_id}/business-day:
+    post:
+      summary: Get calendar business day info
+      description: >
+        Searches for business day information for a specific date within a
+        holiday calendar.
+      operationId: post-search-business-day
+      tags:
+        - Holiday calendar data
+      parameters:
+        - $ref: '#/components/parameters/HolidayCalendarIdPath2'
+      requestBody:
+        description: Business day search request body
+        content:
+          application/json:
+            schema:
+              $ref: >-
+                #/components/schemas/presenter.HolidayCalendarSearchBusinessDayRequest
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: >-
+                  #/components/schemas/presenter.HolidayCalendarSearchBusinessDayResponse
+        '400':
+          $ref: '#/components/responses/400BadRequestGetBusinessDay'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /v1/holiday-calendar/{holiday_calendar_id}/non-business-days:
+    get:
+      summary: Get calendar non-business days
+      description: >
+        Get non-business days (weekends and holidays) for a specific holiday
+        calendar within a date range. Non-business days include weekends based
+        on the holiday calendar's working days configuration and holidays
+        associated with the group.
+      operationId: get-non-business-days
+      tags:
+        - Holiday calendar data
+      parameters:
+        - $ref: '#/components/parameters/HolidayCalendarIdPath2'
+        - $ref: '#/components/parameters/BeginDateQuery'
+        - $ref: '#/components/parameters/EndDateQuery'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: >-
+                  #/components/schemas/presenter.HolidayCalendarNonBusinessDaysResponse
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /internal/v1/holiday-calendar/{id}/business-day/batch:
+    post:
+      summary: Batch search calendar business days
+      description: |
+        Returns business day info for multiple dates in a holiday calendar.
+      operationId: post-business-day-batch
+      tags:
+        - Holiday calendar data
+      x-internal: true
+      parameters:
+        - $ref: '#/components/parameters/HolidayCalendarIdPath'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/presenter.UpdateHolidayV2Request'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: >-
+                  #/components/schemas/presenter.HolidayCalendarBusinessDayBatchResponse
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
